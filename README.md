@@ -1,2 +1,3 @@
 # graphql
-A learning phrase for graphql.
+
+A learning phrase for graphql
