@@ -9,6 +9,6 @@
     "skipLibCheck": true,
     "target": "ESNext",
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "./",
   }
 }
