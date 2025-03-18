@@ -1,0 +1,12 @@
+{
+  "name": "graphql_starter",
+  "private": true,
+  "scripts": {
+    "dev": "npm run --workspace=server start & npm run --workspace=client dev",
+    "start": "npm run build && npm run --workspace=server start"
+  },
+  "workspaces": [
+    "server",
+    "client"
+  ]
+}
