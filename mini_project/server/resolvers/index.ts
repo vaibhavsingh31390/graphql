@@ -1,6 +1,6 @@
-import { companyFieldsMod, companyResolvers } from "./company";
+import { comapnyMutation, companyFieldsMod, companyResolvers } from "./company";
 import { jobFieldsMod, jobMutation, jobResolvers } from "./job";
-import { userFieldsMod, userResolvers } from "./user";
+import { userFieldsMod, userMutation, userResolvers } from "./user";
 
 const resolvers = {
   Query: {
@@ -10,6 +10,8 @@ const resolvers = {
   },
   Mutation: {
     ...jobMutation,
+    ...userMutation,
+    ...comapnyMutation,
   },
   ...jobFieldsMod,
   ...companyFieldsMod,

@@ -1,21 +1,23 @@
 import { fetchCompanyByIdQl } from "../controller/companyController";
 import {
   createJob,
+  deleteJob,
   fetchAllJobsQl,
   fetchJobByIdQl,
+  updateJob,
 } from "../controller/jobsController";
 import { fetchUserByIdQl } from "../controller/usersController";
-import { GraphQlNotFoundCheck, toIsoDate } from "../lib/Helpers";
+import { toIsoDate } from "../lib/Helpers";
 import { Company } from "../model";
 
 export const jobResolvers = {
   job: async (_parent: any, args: { id: string }) => {
     const job = await fetchJobByIdQl(args.id);
-    return GraphQlNotFoundCheck(job, `Job ID : ${args.id}`);
+    return job;
   },
   jobs: async () => {
     const jobs = await fetchAllJobsQl();
-    return GraphQlNotFoundCheck(jobs, "Jobs");
+    return jobs;
   },
 };
 
@@ -26,6 +28,20 @@ export const jobMutation = {
   ) => {
     const companyId = "2";
     const job = await createJob(input.title, input.description, companyId);
+    return job;
+  },
+  deleteJob: async (_parent: any, { id }: { id: string }) => {
+    const job = await deleteJob(id);
+    return job;
+  },
+  updateJob: async (
+    _parent: any,
+    {
+      id,
+      input,
+    }: { id: string; input: { title?: string; description?: string } }
+  ) => {
+    const job = await updateJob(id, input);
     return job;
   },
 };

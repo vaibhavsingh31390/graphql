@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import AppResponse from "../lib/AppResponse";
-import { catchAsync } from "../lib/CatchAsync";
+import { catchAsync, catchAsyncGQl } from "../lib/CatchAsync";
 import { User } from "../model";
 import { AppError } from "../lib/AppError";
 
@@ -14,40 +14,65 @@ export const fetchAllUsersRest = catchAsync(
   }
 );
 
-export const fetchAllUsersQl = async (): Promise<User[] | null> => {
-  const users = await User.findAll();
-  return users;
-};
+export const fetchAllUsersQl = catchAsyncGQl(
+  async (): Promise<User[] | null> => {
+    const users = await User.findAll();
+    return users;
+  }
+);
 
-export const fetchUserByIdQl = async (
-  id: string | number
-): Promise<User | null> => {
-  const user = await User.findByPk(id);
-  return user;
-};
+export const fetchUserByIdQl = catchAsyncGQl(
+  async (id: string | number): Promise<User | null> => {
+    const user = await User.findByPk(id);
+    return user;
+  }
+);
 
-export const fetchUserByCompanyIdQl = async (
-  id: string | number
-): Promise<User[] | null> => {
-  const users = await User.findAll({
-    where: {
-      companyId: id,
-    },
-  });
-  return users;
-};
+export const fetchUserByCompanyIdQl = catchAsyncGQl(
+  async (id: string | number): Promise<User[] | null> => {
+    const users = await User.findAll({
+      where: {
+        companyId: id,
+      },
+    });
+    return users;
+  }
+);
 
-export const createUser = async (
-  name: string,
-  email: string,
-  password: string
-): Promise<User | null> => {
-  const companyId = "2";
-  const user = await User.create({
-    companyId,
-    name,
-    email,
-    password,
-  });
-  return user;
-};
+export const createUser = catchAsyncGQl(
+  async (
+    name: string,
+    email: string,
+    password: string,
+    companyId: string
+  ): Promise<User | null> => {
+    const user = await User.create({
+      companyId,
+      name,
+      email,
+      password,
+    });
+    return user;
+  }
+);
+
+export const deleteUser = catchAsyncGQl(
+  async (id: string): Promise<User | Error | null> => {
+    const user = await User.findByPk(id);
+    if (!user) return new Error(`user:${id} not found`);
+    await user.destroy();
+    return user;
+  }
+);
+
+export const updateUser = catchAsyncGQl(
+  async (
+    id: string,
+    updates: Partial<{ title: string; description: string; companyId: string }>
+  ): Promise<User | Error | null> => {
+    const user = await User.findByPk(id);
+    if (!user) return new Error(`User:${id} not found`);
+    await user.update(updates);
+    return user;
+  }
+);

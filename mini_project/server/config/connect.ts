@@ -7,6 +7,7 @@ const connectDB = async () => {
     console.log("Database connected successfully!");
     await sequelize
       .sync({ alter: true })
+
       .then(() => {
         console.log("Tables synced successfully!");
       })

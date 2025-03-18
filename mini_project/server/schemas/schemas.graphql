@@ -45,9 +45,41 @@ type User {
 
 type Mutation {
   createJob(input: createJobInput!): Job
+  createUser(input: createUserInput!): User
+  createCompany(input: createCompanyInput!): Company
+  deleteJob(id: ID!): Job
+  deleteUser(id: ID!): User
+  deleteCompany(id: ID!): Company
+  updateJob(id: ID!, input: updateJobInput!): Job
+  updateUser(id: ID!, input: updateUserInput!): User
+  updateCompany(id: ID!, input: updateUserInput!): Company
 }
 
 input createJobInput {
   title: String!
   description: String!
+}
+input createUserInput {
+  name: String!
+  email: String!
+  password: String!
+}
+input createCompanyInput {
+  name: String!
+  description: String!
+}
+
+input updateJobInput {
+  title: String
+  description: String
+}
+
+input updateUserInput {
+  email: String
+  password: String
+}
+
+input updateCompanyInput {
+  name: String
+  description: String
 }

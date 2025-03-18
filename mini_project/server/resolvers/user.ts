@@ -1,33 +1,53 @@
 import { fetchCompanyByIdQl } from "../controller/companyController";
 import { fetchJobByUserIdQl } from "../controller/jobsController";
 import {
+  createUser,
+  deleteUser,
   fetchAllUsersQl,
   fetchUserByIdQl,
+  updateUser,
 } from "../controller/usersController";
-import { GraphQlNotFoundCheck, toIsoDate } from "../lib/Helpers";
+import { toIsoDate } from "../lib/Helpers";
 import { Job, User } from "../model";
 
 export const userResolvers = {
   user: async (_parent: any, args: { id: string }) => {
     const user = await fetchUserByIdQl(args.id);
-    return GraphQlNotFoundCheck(user, `User ID : ${args.id}`);
+    return user;
   },
   users: async () => {
     const users = await fetchAllUsersQl();
-    return GraphQlNotFoundCheck(users, "Users");
+    return users;
   },
 };
 
-// export const userMutation = {
-//   createJob: async (
-//     _parent: any,
-//     { input }: { input: { title: string; description: string } }
-//   ) => {
-//     const companyId = "2";
-//     const job = await createJob(input.title, input.description, companyId);
-//     return job;
-//   },
-// };
+export const userMutation = {
+  createUser: async (
+    _parent: any,
+    { input }: { input: { name: string; email: string; password: string } }
+  ) => {
+    const companyId = "2";
+    const user = await createUser(
+      input.name,
+      input.email,
+      input.password,
+      companyId
+    );
+    return user;
+  },
+  deleteUser: async (_parent: any, { id }: { id: string }) => {
+    const job = await deleteUser(id);
+    return job;
+  },
+  updateUser: async (
+    _parent: any,
+    { id, input }: { id: string; input: { email?: string; password?: string } }
+  ) => {
+    const job = await updateUser(id, input);
+    return job;
+  },
+};
+
 export const userFieldsMod = {
   User: {
     company: async (user: any): Promise<User | null> => {

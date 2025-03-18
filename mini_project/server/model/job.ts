@@ -2,6 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/config";
 import Company from "./company";
 import User from "./user";
+import { catchAsyncGQl } from "../lib/CatchAsync";
 
 class Job extends Model {}
 
@@ -21,12 +22,20 @@ Job.init(
     title: { type: DataTypes.STRING, allowNull: false },
     description: { type: DataTypes.TEXT },
     createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    deletedAt: { type: DataTypes.DATE },
   },
-  { sequelize, modelName: "job" }
+  { sequelize, modelName: "job", paranoid: true }
 );
 
 Job.belongsTo(Company, { foreignKey: "companyId" });
-Job.belongsTo(User, { foreignKey: "userId" });
 Company.hasMany(Job, { foreignKey: "companyId" });
+Job.belongsTo(User, { foreignKey: "userId" });
 User.hasMany(Job, { foreignKey: "userId" });
+Company.addHook(
+  "beforeDestroy",
+  catchAsyncGQl(async (company) => {
+    await User.destroy({ where: { companyId: (company as any).id } });
+  })
+);
+
 export default Job;
