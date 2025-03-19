@@ -20,6 +20,7 @@ export const seedDatabase = async () => {
         Array.from({ length: 2 }).map(() => ({
           companyId: company.dataValues.id,
           email: faker.internet.email(),
+          name: faker.person.fullName(),
           password: faker.internet.password(),
         }))
       );

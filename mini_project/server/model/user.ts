@@ -14,6 +14,7 @@ User.init(
       allowNull: false,
       references: { model: "companies", key: "id" },
     },
+    name: { type: DataTypes.STRING, allowNull: false, unique: false },
     email: { type: DataTypes.STRING, allowNull: false, unique: true },
     password: { type: DataTypes.STRING, allowNull: false },
     deletedAt: { type: DataTypes.DATE },

@@ -1,7 +1,16 @@
 import { GraphQLClient, gql } from "graphql-request";
+import { cookies } from "next/headers";
+import { COOKIE_OPTIONS, getAndSanitizeCookie } from "../utils";
 
 const client = new GraphQLClient(
-  process.env.GQL_HOST || "http://localhost:5000/graphql"
+  process.env.GQL_HOST || "http://localhost:5000/graphql",
+  {
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      Origin: process.env.CLIENT_HOST || "http://localhost:3000",
+    },
+  }
 );
 interface Job {
   id: number;
@@ -39,6 +48,30 @@ interface Company {
   ];
 }
 
+interface User {
+  id: number;
+  companyId?: number;
+  email: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  company?: {
+    id?: string;
+    name?: string;
+    description?: string;
+    date?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+  };
+  jobs?: {
+    id?: number;
+    title?: string;
+    description?: string;
+    date?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+  };
+}
+
 interface JobsResponse {
   jobs: Job[];
 }
@@ -53,6 +86,10 @@ interface CompanysResponse {
 
 interface CompanyResponse {
   company: Company;
+}
+
+interface UserResponse {
+  user: User;
 }
 
 export const getJobs = async (): Promise<Job[]> => {
@@ -178,5 +215,41 @@ export const createJob = async (
     return data.job;
   } catch (error: any) {
     return error?.response?.errors[0].message || "Resource not found!";
+  }
+};
+
+export const authlogin = async (
+  email: string,
+  password: string
+): Promise<User> => {
+  const query = gql`
+    mutation loginUser($input: loginUserInput!) {
+      user: loginUser(input: $input) {
+        email
+        name
+        id
+        company {
+          id
+          name
+          description
+          date
+        }
+      }
+    }
+  `;
+  try {
+    const response = await client.rawRequest(query, {
+      input: { email, password },
+    });
+    const sessionToken = getAndSanitizeCookie(
+      response.headers.get("set-cookie")
+    );
+
+    if (sessionToken) {
+      (await cookies()).set("session-token", sessionToken, COOKIE_OPTIONS);
+    }
+    return (response.data as any).user;
+  } catch (error: any) {
+    return error?.response?.errors?.[0]?.message ?? "Something went wrong!";
   }
 };

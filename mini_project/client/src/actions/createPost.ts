@@ -1,10 +1,11 @@
 "use server";
-import { createJob } from "@/lib/graphql/queries";
+import { authlogin, createJob } from "@/lib/graphql/queries";
 type PostState = {
   errors?: Record<string, string>;
   data?: any;
   success?: boolean;
 };
+
 export async function createPost(
   state: PostState,
   formData: FormData
@@ -27,4 +28,28 @@ export async function createPost(
     return { success: false, errors };
   }
   return { success: true, data: job };
+}
+
+export async function login(
+  state: PostState,
+  formData: FormData
+): Promise<PostState> {
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+  const errors: Record<string, string> = {};
+  if (!email || !email.includes("@")) {
+    errors.email = "Invalid Email!!";
+  }
+  if (!password || password.length < 8) {
+    errors.description = "Invalid password!";
+  }
+  if (Object.keys(errors).length > 0) {
+    return { success: false, errors };
+  }
+  const user = await authlogin(email, password);
+  if (typeof user === "string") {
+    errors.status = user;
+    return { success: false, errors };
+  }
+  return { success: true, data: user };
 }

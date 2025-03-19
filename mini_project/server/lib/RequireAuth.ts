@@ -1,14 +1,25 @@
 import { NextFunction, Request, Response } from "express";
-import { HTTP_STATUS_CODES } from "./Constants";
-import { AppError } from "./AppError";
+import { verifyToken } from "./Helpers";
 
-export const RequireAuth = async (
+export const requireAuth = (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  if (!req.currentUser) {
-    return next(new AppError(HTTP_STATUS_CODES.UNAUTHORIZED, "Unauthorised."));
+  const authHeader = req.headers.authorization;
+  const tokenFromHeader = authHeader?.startsWith("Bearer ")
+    ? authHeader.split(" ")[1]
+    : null;
+  const tokenFromCookie = req.cookies?.["session-token"];
+  const token = tokenFromHeader || tokenFromCookie;
+  if (!token) {
+    return next();
+  }
+  try {
+    const decoded = verifyToken(token);
+    (req as any).auth = decoded;
+  } catch (error) {
+    console.error("Invalid token:", error);
   }
   next();
 };

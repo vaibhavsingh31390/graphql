@@ -3,6 +3,7 @@ import AppResponse from "../lib/AppResponse";
 import { catchAsync, catchAsyncGQl } from "../lib/CatchAsync";
 import { User } from "../model";
 import { AppError } from "../lib/AppError";
+import { comparePassword } from "../lib/Helpers";
 
 export const fetchAllUsersRest = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -52,6 +53,20 @@ export const createUser = catchAsyncGQl(
       email,
       password,
     });
+    return user;
+  }
+);
+
+export const loginUser = catchAsyncGQl(
+  async (email: string, password: string): Promise<User | null> => {
+    const user = await User.findOne({ where: { email: email } });
+    if (!user) {
+      throw new Error("Invalid email or password.");
+    }
+    const isMatch = await comparePassword(password, (user as any).password);
+    if (!isMatch) {
+      throw new Error("Invalid email or password.");
+    }
     return user;
   }
 );

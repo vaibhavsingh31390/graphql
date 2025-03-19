@@ -1,3 +1,4 @@
+import { Response } from "express";
 import { fetchCompanyByIdQl } from "../controller/companyController";
 import { fetchJobByUserIdQl } from "../controller/jobsController";
 import {
@@ -5,9 +6,15 @@ import {
   deleteUser,
   fetchAllUsersQl,
   fetchUserByIdQl,
+  loginUser,
   updateUser,
 } from "../controller/usersController";
-import { toIsoDate } from "../lib/Helpers";
+import {
+  COOKIE_OPTIONS,
+  generateToken,
+  hashPassword,
+  toIsoDate,
+} from "../lib/Helpers";
 import { Job, User } from "../model";
 
 export const userResolvers = {
@@ -24,15 +31,30 @@ export const userResolvers = {
 export const userMutation = {
   createUser: async (
     _parent: any,
-    { input }: { input: { name: string; email: string; password: string } }
+    { input }: { input: { name: string; email: string; password: string } },
+    { res }: { res: Response }
   ) => {
     const companyId = "2";
+    const hashedPassword = await hashPassword(input.password);
+
     const user = await createUser(
       input.name,
       input.email,
-      input.password,
+      hashedPassword,
       companyId
     );
+    const token = generateToken(user.id);
+    res.cookie("session-token", token, COOKIE_OPTIONS);
+    return user;
+  },
+  loginUser: async (
+    _parent: any,
+    { input }: { input: { email: string; password: string } },
+    { res }: { res: Response }
+  ) => {
+    const user = await loginUser(input.email, input.password);
+    const token = generateToken((user as any).id);
+    res.cookie("session-token", token, COOKIE_OPTIONS);
     return user;
   },
   deleteUser: async (_parent: any, { id }: { id: string }) => {

@@ -36,12 +36,12 @@ export const catchAsyncGQl = (fn: (...args: any[]) => Promise<any>) => {
       }
 
       if (error instanceof DatabaseError) {
-        throw new GraphQLError("Database error", {
+        throw new GraphQLError(error.message || "Database error", {
           extensions: { code: "INTERNAL_SERVER_ERROR", error: error.message },
         });
       }
 
-      throw new GraphQLError("Internal server error", {
+      throw new GraphQLError(error.message || "Internal server error", {
         extensions: { code: "INTERNAL_SERVER_ERROR", error: error.message },
       });
     }

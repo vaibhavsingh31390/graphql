@@ -34,8 +34,8 @@ type Company {
 type User {
   id: ID!
   companyId: ID!
+  name: String!
   email: String!
-  password: String!
   date: String
   createdAt: String
   updatedAt: String
@@ -46,6 +46,7 @@ type User {
 type Mutation {
   createJob(input: createJobInput!): Job
   createUser(input: createUserInput!): User
+  loginUser(input: loginUserInput!): User
   createCompany(input: createCompanyInput!): Company
   deleteJob(id: ID!): Job
   deleteUser(id: ID!): User
@@ -64,6 +65,12 @@ input createUserInput {
   email: String!
   password: String!
 }
+
+input loginUserInput {
+  email: String!
+  password: String!
+}
+
 input createCompanyInput {
   name: String!
   description: String!
