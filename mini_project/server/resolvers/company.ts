@@ -50,9 +50,6 @@ export const companyFieldsMod = {
     jobs: async (company: any): Promise<Job[] | null> => {
       return await fetchJobsByCompanyByIdQl(company.id);
     },
-    users: async (job: any): Promise<User[] | null> => {
-      return await fetchUserByCompanyIdQl(job.id);
-    },
     date: (company: any) => toIsoDate(company.createdAt),
   },
 };

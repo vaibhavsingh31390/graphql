@@ -1,23 +1,51 @@
 import { GraphQLClient, gql } from "graphql-request";
 import { cookies } from "next/headers";
-import { COOKIE_OPTIONS, getAndSanitizeCookie } from "../utils";
+import { COOKIE_OPTIONS, getAndSanitizeCookie } from "../helpers";
+import { revalidatePath } from "next/cache";
 
-const client = new GraphQLClient(
-  process.env.GQL_HOST || "http://localhost:5000/graphql",
-  {
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      Origin: process.env.CLIENT_HOST || "http://localhost:3000",
-    },
+const baseHeaders: Record<string, string> = {
+  "Content-Type": "application/json",
+  Origin: process.env.CLIENT_HOST || "http://localhost:3000",
+};
+const graphqlEndpoint = process.env.GQL_HOST || "http://localhost:5000/graphql";
+const createClient = async () => {
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get("session-token")?.value;
+
+  const headers = { ...baseHeaders };
+  if (sessionToken) {
+    headers.Authorization = `Bearer ${sessionToken}`;
   }
-);
-interface Job {
+
+  return new GraphQLClient(graphqlEndpoint, {
+    credentials: "include",
+    headers,
+  });
+};
+
+async function graphqlRequest<T>(
+  query: string,
+  variables?: Record<string, any>
+): Promise<T> {
+  const client = await createClient();
+  try {
+    return await client.request<T>(query, variables);
+  } catch (error: any) {
+    throw new Error(
+      error?.response?.errors[0]?.message || "Resource not found!"
+    );
+  }
+}
+
+// Interfaces
+export interface Job {
   id: number;
   companyId?: number;
+  userId: number;
   title: string;
   description?: string;
   date: string;
+  showActions: boolean;
   createdAt?: Date;
   updatedAt?: Date;
   company: {
@@ -36,16 +64,14 @@ interface Company {
   date: string;
   createdAt?: Date;
   updatedAt?: Date;
-  jobs: [
-    {
-      id: string;
-      title?: string;
-      date?: string;
-      description?: string;
-      createdAt?: Date;
-      updatedAt?: Date;
-    }
-  ];
+  jobs: Array<{
+    id: string;
+    title?: string;
+    date?: string;
+    description?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+  }>;
 }
 
 interface User {
@@ -92,6 +118,7 @@ interface UserResponse {
   user: User;
 }
 
+// Query functions
 export const getJobs = async (): Promise<Job[]> => {
   const query = gql`
     query {
@@ -106,12 +133,8 @@ export const getJobs = async (): Promise<Job[]> => {
       }
     }
   `;
-  try {
-    const data = (await client.request<JobsResponse>(query)) || [];
-    return data.jobs;
-  } catch (error: any) {
-    return error?.response?.errors[0].message || "Resource not found!";
-  }
+  const data = await graphqlRequest<JobsResponse>(query);
+  return data.jobs;
 };
 
 export const getJobsById = async (id: string): Promise<Job> => {
@@ -121,6 +144,8 @@ export const getJobsById = async (id: string): Promise<Job> => {
         id
         title
         description
+        showActions
+        userId
         company {
           id
           name
@@ -129,12 +154,26 @@ export const getJobsById = async (id: string): Promise<Job> => {
       }
     }
   `;
-  try {
-    const data = (await client.request<JobResponse>(query, { id })) || [];
-    return data.job;
-  } catch (error: any) {
-    return error?.response?.errors[0].message || "Resource not found!";
-  }
+  const data = await graphqlRequest<JobResponse>(query, { id });
+  return data.job;
+};
+
+export const getJobsByUserId = async (id: string): Promise<Job[]> => {
+  const query = gql`
+    query ($id: ID!) {
+      jobs: jobsByUserId(id: $id) {
+        id
+        title
+        description
+        date
+        company {
+          name
+        }
+      }
+    }
+  `;
+  const data = await graphqlRequest<JobsResponse>(query, { id });
+  return data.jobs;
 };
 
 export const getCompanyById = async (id: string): Promise<Company> => {
@@ -156,13 +195,8 @@ export const getCompanyById = async (id: string): Promise<Company> => {
       }
     }
   `;
-
-  try {
-    const data = (await client.request<CompanyResponse>(query, { id })) || [];
-    return data.company;
-  } catch (error: any) {
-    return error?.response?.errors[0].message || "Resource not found!";
-  }
+  const data = await graphqlRequest<CompanyResponse>(query, { id });
+  return data.company;
 };
 
 export const getAllCompanys = async (): Promise<Company[]> => {
@@ -180,15 +214,24 @@ export const getAllCompanys = async (): Promise<Company[]> => {
       }
     }
   `;
-  try {
-    const data = (await client.request<CompanysResponse>(query)) || [];
-    return data.companys;
-  } catch (error: any) {
-    return error?.response?.errors[0].message || "Resource not found!";
-  }
+  const data = await graphqlRequest<CompanysResponse>(query);
+  return data.companys;
 };
 
-// Mutation
+export const getCompanysList = async (): Promise<Company[]> => {
+  const query = gql`
+    query getAllCompany {
+      companys {
+        id
+        name
+      }
+    }
+  `;
+  const data = await graphqlRequest<CompanysResponse>(query);
+  return data.companys;
+};
+
+// Mutation functions
 export const createJob = async (
   title: string,
   desc: string,
@@ -204,17 +247,85 @@ export const createJob = async (
       }
     }
   `;
+  const client = await createClient();
   try {
-    const data =
-      (await client.request<JobResponse>(query, {
-        input: {
-          title,
-          description: desc,
-        },
-      })) || [];
-    return data.job;
+    const response = await client.rawRequest(query, {
+      input: {
+        title,
+        description: desc,
+        companyId,
+      },
+    });
+    return (response.data as any).job;
   } catch (error: any) {
-    return error?.response?.errors[0].message || "Resource not found!";
+    handleError(error);
+  }
+};
+
+export const updateJob = async (
+  id: string,
+  title: string,
+  desc: string,
+  companyId: string
+): Promise<Job> => {
+  const query = gql`
+    mutation ($id: ID!, $input: updateJobInput!) {
+      updateJob(id: $id, input: $input) {
+        id
+        title
+        description
+        showActions
+        userId
+        company {
+          id
+          name
+          description
+        }
+      }
+    }
+  `;
+  const client = await createClient();
+  try {
+    const response = await client.rawRequest(query, {
+      id,
+      input: {
+        title,
+        description: desc,
+        companyId,
+      },
+    });
+    revalidatePath("/jobs", "page");
+    return (response.data as any).job;
+  } catch (error: any) {
+    handleError(error);
+  }
+};
+
+export const deleteJob = async (id: string): Promise<Job> => {
+  const query = gql`
+    mutation ($id: ID!) {
+      deleteJob(id: $id) {
+        id
+        title
+        description
+        showActions
+        userId
+        company {
+          id
+          name
+          description
+        }
+      }
+    }
+  `;
+  const client = await createClient();
+  try {
+    const response = await client.rawRequest(query, {
+      id,
+    });
+    return (response.data as any).job;
+  } catch (error: any) {
+    handleError(error);
   }
 };
 
@@ -228,15 +339,10 @@ export const authlogin = async (
         email
         name
         id
-        company {
-          id
-          name
-          description
-          date
-        }
       }
     }
   `;
+  const client = await createClient();
   try {
     const response = await client.rawRequest(query, {
       input: { email, password },
@@ -250,6 +356,13 @@ export const authlogin = async (
     }
     return (response.data as any).user;
   } catch (error: any) {
-    return error?.response?.errors?.[0]?.message ?? "Something went wrong!";
+    throw new Error(error?.response?.errors?.[0]?.message ?? "Login failed");
   }
 };
+
+function handleError(error: any): never {
+  const errorMessage =
+    error?.response?.errors?.[0]?.message ?? "An unexpected error occurred";
+  console.error("GraphQL Error:", errorMessage);
+  throw new Error(errorMessage);
+}

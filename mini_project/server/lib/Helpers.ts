@@ -4,7 +4,11 @@ import jwt from "jsonwebtoken";
 import { Request } from "express";
 
 export interface AuthenticatedRequest extends Request {
-  auth?: unknown;
+  auth?: {
+    userId: number;
+    iat: number;
+    exp: number;
+  };
 }
 
 export const JWT_SECRET =
@@ -52,14 +56,40 @@ export const comparePassword = async (
   return await bcrypt.compare(password, hash);
 };
 
+// TO DO ADD ROLE FOR RBAC
 export const generateToken = (userId: number) => {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: "1h" });
+  const secret: jwt.Secret = JWT_SECRET;
+  const options: jwt.SignOptions = {
+    expiresIn: (process.env.JWT_EXPIRY as any) || "7d",
+  };
+  return jwt.sign({ userId }, secret, options);
 };
 
 export const verifyToken = (token: string) => {
   return jwt.verify(token, JWT_SECRET);
 };
 
-export const getContext = (req: AuthenticatedRequest) => {
-  return { auth: req.auth || null };
+export const getContext = (req: AuthenticatedRequest, errorReturn: boolean) => {
+  const auth = req.auth ?? null;
+  if (!auth) {
+    if (errorReturn)
+      throw new GraphQLError("Invalid Token!", {
+        extensions: {
+          code: "BAD_REQUEST",
+          httpStatus: 401,
+        },
+      });
+    return { auth };
+  }
+  if (auth.exp && auth.exp < Math.floor(Date.now() / 1000)) {
+    if (errorReturn)
+      throw new GraphQLError("Expired Token!", {
+        extensions: {
+          code: "BAD_REQUEST",
+          httpStatus: 401,
+        },
+      });
+    return { auth: null };
+  }
+  return { auth };
 };

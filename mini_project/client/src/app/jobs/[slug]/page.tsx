@@ -1,5 +1,7 @@
+import JobAction from "@/components/ui/functional/JobAction";
 import { getJobsById } from "@/lib/graphql/queries";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 export default async function Page({
   params,
@@ -8,8 +10,8 @@ export default async function Page({
 }) {
   const { slug } = await params;
   const job = await getJobsById(slug);
-  if (typeof job === "string") {
-    return <h1 className="text-center">{job}</h1>;
+  if (typeof job === "string" || !job) {
+    return notFound();
   }
 
   return (
@@ -18,7 +20,10 @@ export default async function Page({
         Job Details
       </h1>
       <div className="bg-white p-5 rounded-lg shadow-lg">
-        <h2 className="font-bold text-black text-3xl">{job.title}</h2>
+        <div className="action-container flex justify-between items-center">
+          <h2 className="font-bold text-black text-3xl">{job.title}</h2>
+          <JobAction job={job} />
+        </div>
         <Link href={`/company/${job.company.id}`}>
           <p className="text-2xl text-gray-700 font-semibold mt-2 hover:underline">
             {job.company.name}

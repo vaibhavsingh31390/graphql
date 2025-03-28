@@ -31,11 +31,5 @@ Job.belongsTo(Company, { foreignKey: "companyId" });
 Company.hasMany(Job, { foreignKey: "companyId" });
 Job.belongsTo(User, { foreignKey: "userId" });
 User.hasMany(Job, { foreignKey: "userId" });
-Company.addHook(
-  "beforeDestroy",
-  catchAsyncGQl(async (company) => {
-    await User.destroy({ where: { companyId: (company as any).id } });
-  })
-);
 
 export default Job;

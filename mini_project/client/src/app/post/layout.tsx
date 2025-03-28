@@ -6,15 +6,8 @@ export const metadata: Metadata = {
 
 export default function Layout({
   serverPostForm,
-  clientPostForm,
 }: Readonly<{
   serverPostForm: React.ReactNode;
-  clientPostForm: React.ReactNode;
 }>) {
-  return (
-    <>
-      {serverPostForm}
-      {clientPostForm}
-    </>
-  );
+  return <>{serverPostForm}</>;
 }

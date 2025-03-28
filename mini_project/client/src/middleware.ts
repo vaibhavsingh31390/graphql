@@ -1,21 +1,25 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getValidSession } from "./lib/utils";
+import { getValidSession } from "./lib/helpers";
+import { cookies } from "next/headers";
 
 export async function middleware(req: NextRequest) {
-  try {
-    const validity = await getValidSession();
-    if (!validity) {
-      return NextResponse.redirect(new URL("/", req.url));
-    }
-    const res = NextResponse.next();
-    res.headers.set("x-auth-state", "valid");
-    return res;
-  } catch (error) {
+  const validity = await getValidSession();
+  const res = NextResponse.next();
+  if (validity) {
+    validity.auth = true;
+    res.headers.set("x-auth-state", JSON.stringify(validity));
+  } else {
+    (await cookies()).delete("session-token");
+  }
+
+  if (!validity && req.nextUrl.pathname === "/post") {
     return NextResponse.redirect(new URL("/", req.url));
   }
+
+  return res;
 }
 
 export const config = {
-  matcher: ["/post"],
+  matcher: "/:path*",
 };

@@ -41,12 +41,14 @@ export const createJob = catchAsyncGQl(
   async (
     title: string,
     description: string,
-    companyId: string
+    companyId: string,
+    auth
   ): Promise<Job | null> => {
     const job = await Job.create({
       title,
       description,
       companyId,
+      userId: auth.userId,
     });
     return job;
   }

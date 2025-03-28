@@ -1,5 +1,4 @@
-import { Response } from "express";
-import { fetchCompanyByIdQl } from "../controller/companyController";
+import { Request, Response } from "express";
 import { fetchJobByUserIdQl } from "../controller/jobsController";
 import {
   createUser,
@@ -12,6 +11,7 @@ import {
 import {
   COOKIE_OPTIONS,
   generateToken,
+  getContext,
   hashPassword,
   toIsoDate,
 } from "../lib/Helpers";
@@ -26,6 +26,11 @@ export const userResolvers = {
     const users = await fetchAllUsersQl();
     return users;
   },
+  me: async (_parent: any, _args: {}, { req }: { req: Request }) => {
+    const { auth } = getContext(req, true);
+    const user = await fetchUserByIdQl((auth as any).userId);
+    return user;
+  },
 };
 
 export const userMutation = {
@@ -34,15 +39,8 @@ export const userMutation = {
     { input }: { input: { name: string; email: string; password: string } },
     { res }: { res: Response }
   ) => {
-    const companyId = "2";
     const hashedPassword = await hashPassword(input.password);
-
-    const user = await createUser(
-      input.name,
-      input.email,
-      hashedPassword,
-      companyId
-    );
+    const user = await createUser(input.name, input.email, hashedPassword);
     const token = generateToken(user.id);
     res.cookie("session-token", token, COOKIE_OPTIONS);
     return user;
@@ -72,9 +70,6 @@ export const userMutation = {
 
 export const userFieldsMod = {
   User: {
-    company: async (user: any): Promise<User | null> => {
-      return await fetchCompanyByIdQl(user.companyId);
-    },
     jobs: async (user: any): Promise<Job[] | null> => {
       return await fetchJobByUserIdQl(user.id);
     },

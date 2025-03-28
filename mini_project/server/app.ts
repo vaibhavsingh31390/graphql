@@ -45,7 +45,7 @@ let apolloServer: ApolloServer<{ req: Request; res: Response; auth: any }>;
         context: async ({ req, res }) => ({
           req,
           res,
-          ...getContext(req as AuthenticatedRequest),
+          ...getContext(req as AuthenticatedRequest, false),
         }),
       })
     );

@@ -1,5 +1,5 @@
 "use client";
-import { login } from "@/actions/createPost";
+import { login } from "@/actions/Post";
 import FormSubmitBtn from "@/components/ui/functional/FormSubmitBtn";
 import Link from "next/link";
 import React from "react";

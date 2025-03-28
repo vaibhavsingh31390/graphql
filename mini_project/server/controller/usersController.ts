@@ -44,11 +44,9 @@ export const createUser = catchAsyncGQl(
   async (
     name: string,
     email: string,
-    password: string,
-    companyId: string
+    password: string
   ): Promise<User | null> => {
     const user = await User.create({
-      companyId,
       name,
       email,
       password,
